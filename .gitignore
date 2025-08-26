@@ -1,0 +1,103 @@
+# .gitignore for Kidney Stone Detection System
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual Environments
+kidney_stone_env/
+venv/
+env/
+ENV/
+.venv/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+*.ipynb
+
+# Data and Models
+data/
+!data/.gitkeep
+models/
+!models/.gitkeep
+*.h5
+*.pkl
+*.joblib
+*.model
+
+# Medical Images (NEVER commit patient data)
+*.dcm
+*.dicom
+uploads/
+temp_images/
+processed_images/
+
+# Logs
+logs/
+*.log
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# TensorFlow
+*.pb
+saved_model/
+checkpoints/
+
+# Gradio
+gradio_cached_examples/
+flagged/
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Documentation builds
+docs/_build/
+
+# Temporary files
+tmp/
+temp/
