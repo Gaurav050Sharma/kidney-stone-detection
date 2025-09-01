@@ -21,10 +21,13 @@ except ImportError:
 try:
     import tensorflow as tf
     import pickle
+    from skimage.feature import hog
     TF_AVAILABLE = True
+    SKIMAGE_AVAILABLE = True
 except ImportError:
     TF_AVAILABLE = False
-    print("Warning: TensorFlow not available")
+    SKIMAGE_AVAILABLE = False
+    print("Warning: TensorFlow or scikit-image not available")
 
 def load_models():
     """Load trained models with error handling"""
@@ -55,7 +58,58 @@ def load_models():
 # Load models at startup
 cnn_model, svm_model = load_models()
 
+def extract_hog_features(image):
+    """Extract HOG features for SVM prediction"""
+    try:
+        if not SKIMAGE_AVAILABLE:
+            print("scikit-image not available for HOG features")
+            return np.zeros(324)
+            
+        # Convert to grayscale
+        if len(image.shape) == 3:
+            gray = cv2.cvtColor((image * 255).astype(np.uint8), cv2.COLOR_RGB2GRAY)
+        else:
+            gray = (image * 255).astype(np.uint8)
+        
+        # Resize to the same size used during training
+        resized = cv2.resize(gray, (64, 64))
+        
+        # Calculate HOG features (same parameters as training)
+        features = hog(resized, 
+                      orientations=9, 
+                      pixels_per_cell=(8, 8),
+                      cells_per_block=(2, 2), 
+                      visualize=False,
+                      feature_vector=True)
+        
+        return features
+    except Exception as e:
+        print(f"Error extracting HOG features: {e}")
+        # Return zero vector as fallback
+        return np.zeros(324)  # 9*2*2*9 = 324 features
+
 def preprocess_image(image, target_size=(150, 150)):
+    """Preprocess image for model prediction"""
+    try:
+        # Convert PIL to numpy array
+        img_array = np.array(image)
+        
+        # Convert to RGB if needed
+        if len(img_array.shape) == 3 and img_array.shape[2] == 4:  # RGBA
+            img_array = cv2.cvtColor(img_array, cv2.COLOR_RGBA2RGB)
+        elif len(img_array.shape) == 2:  # Grayscale
+            img_array = cv2.cvtColor(img_array, cv2.COLOR_GRAY2RGB)
+        
+        # Resize image
+        img_resized = cv2.resize(img_array, target_size)
+        
+        # Normalize
+        img_normalized = img_resized.astype(np.float32) / 255.0
+        
+        return img_normalized
+    except Exception as e:
+        print(f"Error preprocessing image: {e}")
+        return None
     """Preprocess image for model prediction"""
     try:
         # Convert PIL to numpy array
@@ -112,15 +166,21 @@ def predict_kidney_stone(image):
                 print(f"CNN prediction error: {e}")
                 cnn_confidence = 0.0
         
-        # SVM prediction (using flattened features)
+        # SVM prediction (using HOG features)
         if svm_model is not None:
             try:
-                # Flatten image for SVM
-                img_flattened = processed_image.flatten().reshape(1, -1)
-                svm_pred = svm_model.predict_proba(img_flattened)
-                svm_confidence = float(svm_pred[0][1]) * 100  # Probability of stone class
-                if svm_confidence > 50:
+                # Extract HOG features for SVM (same as training)
+                hog_features = extract_hog_features(processed_image)
+                hog_features = hog_features.reshape(1, -1)  # Reshape for prediction
+                
+                svm_pred_proba = svm_model.predict_proba(hog_features)
+                svm_confidence = float(svm_pred_proba[0][1]) * 100  # Probability of stone class
+                
+                # Also get the actual prediction
+                svm_pred = svm_model.predict(hog_features)
+                if svm_pred[0] == 1:  # Stone detected
                     prediction = "Stone Detected"
+                    
             except Exception as e:
                 print(f"SVM prediction error: {e}")
                 svm_confidence = 0.0
